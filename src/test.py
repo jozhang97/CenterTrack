@@ -1,3 +1,8 @@
+# borrowed from https://raw.githubusercontent.com/xingyizhou/CenterTrack/master/src/test.py
+# this script 
+#     for each video, run tracker 
+#     for each video, write results to a dataset specific formatted file
+#     run dataset specific evaluation code
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -36,11 +41,9 @@ class PrefetchDataset(torch.utils.data.Dataset):
     images, meta = {}, {}
     for scale in opt.test_scales:
       input_meta = {}
-      calib = img_info['calib'] if 'calib' in img_info \
-        else self.get_default_calib(image.shape[1], image.shape[0])
+      calib = img_info['calib'] if 'calib' in img_info else self.get_default_calib(image.shape[1], image.shape[0])
       input_meta['calib'] = calib
-      images[scale], meta[scale] = self.pre_process_func(
-        image, scale, input_meta)
+      images[scale], meta[scale] = self.pre_process_func(image, scale, input_meta)
     ret = {'images': images, 'image': image, 'meta': meta}
     if 'frame_id' in img_info and img_info['frame_id'] == 1:
       ret['is_first_frame'] = 1
@@ -84,32 +87,37 @@ def prefetch_test(opt):
     for img_id in data_loader.dataset.images:
       results[img_id] = load_results['{}'.format(img_id)]
     num_iters = 0
+
+  # Main: iterate through dataset and prepare tracking results 
   for ind, (img_id, pre_processed_images) in enumerate(data_loader):
+    # handle early stop
     if ind >= num_iters:
       break
+
+    # handle first frame
+    img_id_str = str(int(img_id.numpy().astype(np.int32)[0]))
     if opt.tracking and ('is_first_frame' in pre_processed_images):
-      if '{}'.format(int(img_id.numpy().astype(np.int32)[0])) in load_results:
-        pre_processed_images['meta']['pre_dets'] = \
-          load_results['{}'.format(int(img_id.numpy().astype(np.int32)[0]))]
+      if img_id_str in load_results:
+        pre_processed_images['meta']['pre_dets'] = load_results[img_id_str]
       else:
-        print()
-        print('No pre_dets for', int(img_id.numpy().astype(np.int32)[0]), 
-          '. Use empty initialization.')
+        print('No pre_dets for', img_id_str, '. Use empty initialization.')
         pre_processed_images['meta']['pre_dets'] = []
       detector.reset_tracking()
       print('Start tracking video', int(pre_processed_images['video_id']))
+
+    # handle public det
     if opt.public_det:
-      if '{}'.format(int(img_id.numpy().astype(np.int32)[0])) in load_results:
-        pre_processed_images['meta']['cur_dets'] = \
-          load_results['{}'.format(int(img_id.numpy().astype(np.int32)[0]))]
+      if img_id_str in load_results:
+        pre_processed_images['meta']['cur_dets'] = load_results[img_id_str]
       else:
-        print('No cur_dets for', int(img_id.numpy().astype(np.int32)[0]))
+        print('No cur_dets for', img_id_str)
         pre_processed_images['meta']['cur_dets'] = []
     
-    import ipdb; ipdb.set_trace(context=21)
-    ret = detector.run(pre_processed_images, tracks=results)
-    results[int(img_id.numpy().astype(np.int32)[0])] = ret['results']
+    # run tracker and store results
+    ret = detector.run(pre_processed_images)
+    results[int(img_id_str)] = ret['results']
     
+    # logging
     Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
                    ind, num_iters, total=bar.elapsed_td, eta=bar.eta_td)
     for t in avg_time_stats:
@@ -122,13 +130,14 @@ def prefetch_test(opt):
     else:
       bar.next()
   bar.finish()
+
+  # Main: save tracks into dataset specific format and evaluate with external script
   if opt.save_results:
     print('saving results to', opt.save_dir + '/save_results_{}{}.json'.format(
       opt.test_dataset, opt.dataset_version))
     json.dump(_to_list(copy.deepcopy(results)), 
               open(opt.save_dir + '/save_results_{}{}.json'.format(
                 opt.test_dataset, opt.dataset_version), 'w'))
-  import ipdb; ipdb.set_trace(context=21)
   dataset.run_eval(results, opt.save_dir)
 
 def test(opt):
