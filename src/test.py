@@ -56,7 +56,7 @@ def prefetch_test(opt):
   Dataset = dataset_factory[opt.test_dataset]
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
   print(opt)
-  Logger(opt)
+  #Logger(opt)
   
   split = 'val' if not opt.trainval else 'test'
   dataset = Dataset(opt, split)
@@ -106,7 +106,8 @@ def prefetch_test(opt):
         print('No cur_dets for', int(img_id.numpy().astype(np.int32)[0]))
         pre_processed_images['meta']['cur_dets'] = []
     
-    ret = detector.run(pre_processed_images)
+    import ipdb; ipdb.set_trace(context=21)
+    ret = detector.run(pre_processed_images, tracks=results)
     results[int(img_id.numpy().astype(np.int32)[0])] = ret['results']
     
     Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
@@ -127,6 +128,7 @@ def prefetch_test(opt):
     json.dump(_to_list(copy.deepcopy(results)), 
               open(opt.save_dir + '/save_results_{}{}.json'.format(
                 opt.test_dataset, opt.dataset_version), 'w'))
+  import ipdb; ipdb.set_trace(context=21)
   dataset.run_eval(results, opt.save_dir)
 
 def test(opt):

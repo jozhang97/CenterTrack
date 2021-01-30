@@ -52,7 +52,7 @@ class Detector(object):
     self.debugger = Debugger(opt=opt, dataset=self.trained_dataset)
 
 
-  def run(self, image_or_path_or_tensor, meta={}):
+  def run(self, image_or_path_or_tensor, meta={}, tracks={}):
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
     merge_time, track_time, tot_time, display_time = 0, 0, 0, 0
     self.debugger.clear()
@@ -449,7 +449,12 @@ class Detector(object):
     if self.opt.debug == 4:
       debugger.save_all_imgs(self.opt.debug_dir, prefix='{}'.format(self.cnt))
     else:
-      debugger.show_all_imgs(pause=self.pause)
+      pass
+      #debugger.show_all_imgs(pause=self.pause)
+
+    #debugger.save_all_imgs('.', prefix='{}'.format(self.cnt))
+    #debugger.save_img('generic')
+    return debugger.imgs['generic']
   
 
   def reset_tracking(self):

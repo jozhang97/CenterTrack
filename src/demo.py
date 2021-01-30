@@ -10,6 +10,7 @@ import cv2
 import json
 import copy
 import numpy as np
+from pathlib import Path
 from opts import opts
 from detector import Detector
 
@@ -21,6 +22,7 @@ time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge', 'display']
 def demo(opt):
   os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
   opt.debug = max(opt.debug, 1)
+  print(opt)
   detector = Detector(opt)
 
   if opt.demo == 'webcam' or \
@@ -45,7 +47,7 @@ def demo(opt):
   out = None
   out_name = opt.demo[opt.demo.rfind('/') + 1:]
   print('out_name', out_name)
-  if opt.save_video:
+  if opt.save_video or True:
     # fourcc = cv2.VideoWriter_fourcc(*'XVID')
     fourcc = cv2.VideoWriter_fourcc(*'H264')
     out = cv2.VideoWriter('../results/{}.mp4'.format(
@@ -77,7 +79,7 @@ def demo(opt):
       if cnt < opt.skip_first:
         continue
       
-      cv2.imshow('input', img)
+      #cv2.imshow('input', img)
 
       # track or detect the image.
       ret = detector.run(img)
@@ -108,6 +110,7 @@ def demo(opt):
 def save_and_exit(opt, out=None, results=None, out_name=''):
   if opt.save_results and (results is not None):
     save_dir =  '../results/{}_results.json'.format(opt.exp_id + '_' + out_name)
+    Path(save_dir).touch()
     print('saving results to', save_dir)
     json.dump(_to_list(copy.deepcopy(results)), 
               open(save_dir, 'w'))
@@ -124,5 +127,6 @@ def _to_list(results):
   return results
 
 if __name__ == '__main__':
-  opt = opts().init()
+  opter = opts()
+  opt = opter.init()
   demo(opt)

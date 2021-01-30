@@ -29,8 +29,7 @@ class Tracker(object):
     N = len(results)
     M = len(self.tracks)
 
-    dets = np.array(
-      [det['ct'] + det['tracking'] for det in results], np.float32) # N x 2
+    dets = np.array([det['ct'] + det['tracking'] for det in results], np.float32) # N x 2
     track_size = np.array([((track['bbox'][2] - track['bbox'][0]) * \
       (track['bbox'][3] - track['bbox'][1])) \
       for track in self.tracks], np.float32) # M
