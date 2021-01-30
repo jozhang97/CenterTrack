@@ -139,7 +139,17 @@ class Detector(object):
     torch.cuda.synchronize()
     end_time = time.time()
     merge_time += end_time - post_process_time
-    
+
+    # use transformer to compute offsets
+    import sys
+    TRANSFORMER_PATH = '/u/jozhang/code/motion3d/'
+    sys.path.insert(0, TRANSFORMER_PATH)
+    from models.transformer import DPTransformer
+    motion = DPTransformer(2, 64, {'depth': 3, 'heads': 8, 'dim_head': 8, 'mlp_dim': 64, 'dropout': 0.})
+    results[0]['tracking'] = motion.evaluate(results, tracks)    # TODO get this line working
+    trans_path = '/scratch/cluster/jozhang/logs/hydra/2021-01-30/14-42-11/models/ckpt-latest.dat'
+    foo = torch.load(trans_path)
+
     if self.opt.tracking:
       # public detection mode in MOT challenge
       public_det = meta['cur_dets'] if self.opt.public_det else None

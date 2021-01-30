@@ -114,7 +114,7 @@ def prefetch_test(opt):
         pre_processed_images['meta']['cur_dets'] = []
     
     # run tracker and store results
-    ret = detector.run(pre_processed_images)
+    ret = detector.run(pre_processed_images, tracks=results)
     results[int(img_id_str)] = ret['results']
     
     # logging
