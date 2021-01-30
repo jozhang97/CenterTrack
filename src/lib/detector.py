@@ -149,9 +149,10 @@ class Detector(object):
     merge_time += end_time - post_process_time
 
     # use transformer to compute offsets
-    offsets = self.motion.evaluate(results, tracks, image.shape[:2]).detach().numpy()
-    for i in range(len(results)):
-      results[i]['tracking'] = offsets[i]
+    if len(results) > 0:
+      offsets = self.motion.evaluate(results, tracks, image.shape[:2]).detach().numpy()
+      for i in range(len(results)):
+        results[i]['tracking'] = offsets[i]
 
     if self.opt.tracking:
       # public detection mode in MOT challenge
