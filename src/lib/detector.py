@@ -51,9 +51,8 @@ class Detector(object):
     self.tracker = Tracker(opt)
     self.debugger = Debugger(opt=opt, dataset=self.trained_dataset)
 
-    self.use_transformer = False
-    if opt.transformer_motion:
-      self.use_transformer = True
+    self.motion = opt.motion
+    if self.motion == 'transformer':
       import sys
       M3_PATH = '/u/jozhang/code/motion3d/'
       sys.path.insert(0, M3_PATH)
@@ -61,7 +60,7 @@ class Detector(object):
       # motion = DPTransformer(2, 64, {'depth': 3, 'heads': 8, 'dim_head': 8, 'mlp_dim': 64, 'dropout': 0.})
       # trans_path = '/scratch/cluster/jozhang/logs/hydra/2021-01-30/15-36-54/models/ckpt-latest.dat'
       ckpt = torch.load(opt.transformer_load_path)
-      self.motion = ckpt['model'].cuda()
+      self.transformer = ckpt['model'].cuda()
       print(f'Using transformer motion loaded from {opt.transformer_load_path}')
 
   def run(self, image_or_path_or_tensor, meta={}, tracks={}):
@@ -152,11 +151,14 @@ class Detector(object):
     end_time = time.time()
     merge_time += end_time - post_process_time
 
-    # use transformer to compute offsets
-    if self.use_transformer and len(results) > 0:
-      offsets = self.motion.evaluate(results, tracks, image.shape[:2]).detach().numpy()
+    # motion models
+    if self.motion == 'transformer' and len(results) > 0:
+      offsets = self.transformer.evaluate(results, tracks, image.shape[:2]).detach().numpy()
       for i in range(len(results)):
         results[i]['tracking'] = offsets[i]
+    elif self.motion == 'zero':
+      for i in range(len(results)):
+        results[i]['tracking'] = np.zeros_like(results[i]['tracking'])
 
     if self.opt.tracking:
       # public detection mode in MOT challenge

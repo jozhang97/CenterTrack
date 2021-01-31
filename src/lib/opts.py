@@ -254,8 +254,8 @@ class opts(object):
     self.parser.add_argument('--custom_dataset_img_path', default='')
     self.parser.add_argument('--custom_dataset_ann_path', default='')
 
-    # transformer motion
-    self.parser.add_argument('--transformer_motion', action='store_true')
+    # motion
+    self.parser.add_argument('--motion', default='')
     self.parser.add_argument('--transformer_load_path', default='')
 
   def parse(self, args=''):
