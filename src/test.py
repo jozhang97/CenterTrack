@@ -132,6 +132,7 @@ def prefetch_test(opt):
   bar.finish()
 
   # Main: save tracks into dataset specific format and evaluate with external script
+  os.makedirs(opt.save_dir, exist_ok=True)
   if opt.save_results:
     print('saving results to', opt.save_dir + '/save_results_{}{}.json'.format(
       opt.test_dataset, opt.dataset_version))
@@ -181,6 +182,7 @@ def test(opt):
       Bar.suffix = Bar.suffix + '|{} {:.3f} '.format(t, avg_time_stats[t].avg)
     bar.next()
   bar.finish()
+  os.makedirs(opt.save_dir, exist_ok=True)
   if opt.save_results:
     print('saving results to', opt.save_dir + '/save_results_{}{}.json'.format(
       opt.test_dataset, opt.dataset_version))
