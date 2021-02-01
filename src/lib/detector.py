@@ -62,6 +62,12 @@ class Detector(object):
       ckpt = torch.load(opt.transformer_load_path)
       self.transformer = ckpt['model'].cuda()
       print(f'Using transformer motion loaded from {opt.transformer_load_path}')
+    elif self.motion == 'zero':
+      print(f'Using no motion model')
+    elif self.motion == 'cttrack':
+      print(f'Using cttrack motion model')
+    else:
+      assert False, f'Do not recognize such motion model {self.motion}'
 
   def run(self, image_or_path_or_tensor, meta={}, tracks={}):
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
