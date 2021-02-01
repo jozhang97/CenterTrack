@@ -58,9 +58,17 @@ def prefetch_test(opt):
     os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
   Dataset = dataset_factory[opt.test_dataset]
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
-  print(opt)
   #Logger(opt)
-  
+
+  if opt.save_video:
+    opt.debug = 1
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = None
+    vid_dir = os.path.join(opt.save_dir, 'videos')
+    os.makedirs(vid_dir, exist_ok=True)
+    print(f'Saving videos to {vid_dir}')
+  print(opt)
+
   split = 'val' if not opt.trainval else 'test'
   dataset = Dataset(opt, split)
   detector = Detector(opt)
@@ -103,6 +111,11 @@ def prefetch_test(opt):
         print('No pre_dets for', img_id_str, '. Use empty initialization.')
         pre_processed_images['meta']['pre_dets'] = []
       detector.reset_tracking()
+      if opt.save_video:
+        if out is not None:
+          out.release()
+        vid_path = os.path.join(vid_dir, f'track{img_id_str}.mp4')
+        out = cv2.VideoWriter(vid_path, fourcc, opt.save_framerate, pre_processed_images['image'].shape[1:3][::-1])
       print('Start tracking video', int(pre_processed_images['video_id']))
 
     # handle public det
@@ -116,7 +129,12 @@ def prefetch_test(opt):
     # run tracker and store results
     ret = detector.run(pre_processed_images, tracks=results)
     results[int(img_id_str)] = ret['results']
-    
+
+    if opt.save_video:
+      assert 'generic' in ret, 'images are not in the detector results'
+      out.write(ret['generic'])
+      # cv2.imwrite(os.path.join(vid_dir, f'frame_{img_id_str}.png'), ret['generic'])
+
     # logging
     Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
                    ind, num_iters, total=bar.elapsed_td, eta=bar.eta_td)
@@ -130,6 +148,9 @@ def prefetch_test(opt):
     else:
       bar.next()
   bar.finish()
+
+  if opt.save_video and out is not None:
+    out.release()
 
   # Main: save tracks into dataset specific format and evaluate with external script
   os.makedirs(opt.save_dir, exist_ok=True)
