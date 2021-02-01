@@ -256,6 +256,8 @@ class opts(object):
 
     # motion
     self.parser.add_argument('--motion', default='')
+    import random
+    self.parser.add_argument('--uuid', default=random.randint(0, 1e63))
     self.parser.add_argument('--transformer_load_path', default='')
 
   def parse(self, args=''):

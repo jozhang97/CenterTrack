@@ -67,6 +67,10 @@ def prefetch_test(opt):
     vid_dir = os.path.join(opt.save_dir, 'videos')
     os.makedirs(vid_dir, exist_ok=True)
     print(f'Saving videos to {vid_dir}')
+    import wandb
+    wandb.init(project='object-motion', resume='allow', id=opt.uuid)
+    print(f'Logging videos to wandb at {opt.uuid}')
+    imgs = []
   print(opt)
 
   split = 'val' if not opt.trainval else 'test'
@@ -117,6 +121,9 @@ def prefetch_test(opt):
         vid_id = pre_processed_images["video_id"].item()
         vid_path = os.path.join(vid_dir, f'track{vid_id}.mp4')
         out = cv2.VideoWriter(vid_path, fourcc, opt.save_framerate, pre_processed_images['image'].shape[1:3][::-1])
+        if len(imgs) > 0:
+          wandb.log({f'eval/video_{vid_id-1}': wandb.Video(torch.as_tensor(imgs).permute(0,3,1,2))})
+        imgs = []
       print('Start tracking video', int(pre_processed_images['video_id']))
 
     # handle public det
@@ -134,6 +141,7 @@ def prefetch_test(opt):
     if opt.save_video:
       assert 'generic' in ret, 'images are not in the detector results'
       out.write(ret['generic'])
+      imgs.append(cv2.cvtColor(ret['generic'], cv2.COLOR_BGR2RGB))
       # cv2.imwrite(os.path.join(vid_dir, f'frame_{img_id_str}.png'), ret['generic'])
 
     # logging
@@ -152,6 +160,7 @@ def prefetch_test(opt):
 
   if opt.save_video and out is not None:
     out.release()
+    wandb.log({f'eval/video_{vid_id - 1}': wandb.Video(torch.as_tensor(imgs).permute(0, 3, 1, 2))})
 
   # Main: save tracks into dataset specific format and evaluate with external script
   os.makedirs(opt.save_dir, exist_ok=True)
@@ -161,7 +170,7 @@ def prefetch_test(opt):
     json.dump(_to_list(copy.deepcopy(results)), 
               open(opt.save_dir + '/save_results_{}{}.json'.format(
                 opt.test_dataset, opt.dataset_version), 'w'))
-  dataset.run_eval(results, opt.save_dir)
+  dataset.run_eval(results, opt.save_dir, opt.uuid)
 
 def test(opt):
   os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
@@ -211,7 +220,7 @@ def test(opt):
     json.dump(_to_list(copy.deepcopy(results)), 
               open(opt.save_dir + '/save_results_{}{}.json'.format(
                 opt.test_dataset, opt.dataset_version), 'w'))
-  dataset.run_eval(results, opt.save_dir)
+  dataset.run_eval(results, opt.save_dir, opt.uuid)
 
 
 def _to_list(results):

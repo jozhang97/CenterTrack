@@ -905,12 +905,14 @@ class trackingEvaluation(object):
         dump.write("n_gt" + "n_gt_trajectories" + "n_tr" + "n_tr_trajectories")
 
 
-def evaluate(result_sha,mail, split_version=''):
+def evaluate(result_sha,mail, split_version='', uuid=''):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
     """
-    
+    import wandb
+    import numpy as np
+    wandb.init(project='object-motion', resume='allow', id=uuid)
     # start evaluation and instanciated eval object
     mail.msg("Processing Result for KITTI Tracking Benchmark")
     classes = []
@@ -946,6 +948,12 @@ def evaluate(result_sha,mail, split_version=''):
             mail.msg("   Caught exception while creating results.")
         if e.compute3rdPartyMetrics():
             e.saveToStats()
+            mets = ["MOTA", "MOTP", "MOTAL", "MODA", "MODP", "recall", "precision", "F1", "FAR", "MT", "PT", "ML", "tp",
+                    "fp", "fn", "id_switches", "fragments", "n_gt", "n_gt_trajectories", "n_tr", "n_tr_trajectories"]
+            to_log = {f'{c}/{m}': np.array(getattr(e, m)) for m in mets}
+            wandb.log(to_log)
+            for k, v in to_log.items():
+                wandb.run.summary[k] = v
         else:
             mail.msg("There seem to be no true positives or false positives at all in the submitted data.")
 
@@ -973,6 +981,7 @@ if __name__ == "__main__":
     # get unique sha key of submitted results
     result_sha = sys.argv[1]
     split_version = sys.argv[2] if len(sys.argv) >= 3 else ''
+    uuid = sys.argv[3] if len(sys.argv) >= 4 else ''
     mail = mailpy.Mail("")
     # create mail messenger and debug output object
     # if len(sys.argv)==4:
@@ -981,7 +990,7 @@ if __name__ == "__main__":
     #   mail = mailpy.Mail("")
     
     # evaluate results and send notification email to user
-    success = evaluate(result_sha,mail,split_version=split_version)
+    success = evaluate(result_sha,mail,split_version=split_version, uuid=uuid)
     if len(sys.argv)==4: mail.finalize(success,"tracking",result_sha,split_version)
     else:                mail.finalize(success,"tracking",result_sha,"")
 
