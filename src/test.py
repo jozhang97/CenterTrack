@@ -114,7 +114,8 @@ def prefetch_test(opt):
       if opt.save_video:
         if out is not None:
           out.release()
-        vid_path = os.path.join(vid_dir, f'track{pre_processed_images["video_id"]}.mp4')
+        vid_id = pre_processed_images["video_id"].item()
+        vid_path = os.path.join(vid_dir, f'track{vid_id}.mp4')
         out = cv2.VideoWriter(vid_path, fourcc, opt.save_framerate, pre_processed_images['image'].shape[1:3][::-1])
       print('Start tracking video', int(pre_processed_images['video_id']))
 
