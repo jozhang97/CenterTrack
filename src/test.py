@@ -68,7 +68,7 @@ def prefetch_test(opt):
     os.makedirs(vid_dir, exist_ok=True)
     print(f'Saving videos to {vid_dir}')
     import wandb
-    wandb_run = wandb.init(project='object-motion', resume='allow', id=opt.uuid)
+    wandb_run = wandb.init(project='object-motion', resume='allow', id=opt.uuid, dir='/scratch/cluster/jozhang/logs')
     print(f'Logging videos to wandb at {opt.uuid}')
     imgs = []
   print(opt)

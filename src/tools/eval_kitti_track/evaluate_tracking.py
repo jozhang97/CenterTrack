@@ -912,7 +912,7 @@ def evaluate(result_sha,mail, split_version='', uuid=''):
     """
     import wandb
     import numpy as np
-    wandb.init(project='object-motion', resume='allow', id=uuid)
+    wandb.init(project='object-motion', resume='allow', id=uuid, dir='/scratch/cluster/jozhang/logs')
     # start evaluation and instanciated eval object
     mail.msg("Processing Result for KITTI Tracking Benchmark")
     classes = []
