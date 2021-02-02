@@ -68,7 +68,7 @@ def prefetch_test(opt):
     os.makedirs(vid_dir, exist_ok=True)
     print(f'Saving videos to {vid_dir}')
     import wandb
-    wandb.init(project='object-motion', resume='allow', id=opt.uuid)
+    wandb_run = wandb.init(project='object-motion', resume='allow', id=opt.uuid)
     print(f'Logging videos to wandb at {opt.uuid}')
     imgs = []
   print(opt)
@@ -170,6 +170,8 @@ def prefetch_test(opt):
     json.dump(_to_list(copy.deepcopy(results)), 
               open(opt.save_dir + '/save_results_{}{}.json'.format(
                 opt.test_dataset, opt.dataset_version), 'w'))
+  if opt.save_video:
+    wandb_run.finish()
   dataset.run_eval(results, opt.save_dir, opt.uuid)
 
 def test(opt):
