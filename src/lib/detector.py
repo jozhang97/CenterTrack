@@ -9,6 +9,7 @@ from progress.bar import Bar
 import time
 import torch
 import math
+import logging
 
 from model.model import create_model, load_model
 from model.decode import generic_decode
@@ -68,6 +69,10 @@ class Detector(object):
       print(f'Using cttrack motion model')
     else:
       assert False, f'Do not recognize such motion model {self.motion}'
+
+    self.negate_motion = opt.negate_motion
+    if self.negate_motion:
+      logging.warning('Motion is being negated! Are you sure?')
 
   def run(self, image_or_path_or_tensor, meta={}, tracks={}):
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
@@ -165,6 +170,10 @@ class Detector(object):
     elif self.motion == 'zero':
       for i in range(len(results)):
         results[i]['tracking'] = np.zeros_like(results[i]['tracking'])
+
+    if self.negate_motion:
+      for i in range(len(results)):
+        results[i]['tracking'] *= -1
 
     if self.opt.tracking:
       # public detection mode in MOT challenge

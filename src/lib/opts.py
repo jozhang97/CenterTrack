@@ -259,6 +259,7 @@ class opts(object):
     import random
     self.parser.add_argument('--uuid', default=random.randint(0, 1e63))
     self.parser.add_argument('--transformer_load_path', default='')
+    self.parser.add_argument('--negate_motion', action='store_true')
 
   def parse(self, args=''):
     if args == '':
