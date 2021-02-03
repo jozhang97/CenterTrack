@@ -981,6 +981,8 @@ def evaluate(result_sha,mail, split_version='', uuid=''):
             to_log.update({f'IDSW{t}': v for t, v in e.idsws.items()})
             to_log.update({f'Frag{t}': v for t, v in e.frags.items()})
             to_log.update({f'MOTA{t}': v for t, v in enumerate(e.MOTAs)})
+            to_log.update({f'FN{t}'  : v for t, v in enumerate(e.fns)})
+            to_log.update({f'FP{t}'  : v for t, v in enumerate(e.fps)})
             wandb.log(to_log)
             for k, v in to_log.items():
                 wandb.run.summary[k] = v
