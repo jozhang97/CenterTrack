@@ -72,6 +72,10 @@ class tData:
         attrs = vars(self)
         return '\n'.join("%s: %s" % item for item in attrs.items())
 
+    def __repr__(self):
+        return str(self)
+
+CODE_DIR = '/u/jozhang/code/motion3d/external/CenterTrack/src'
 class trackingEvaluation(object):
     """ tracking statistics (CLEAR MOT, id-switches, fragments, ML/PT/MT, precision/recall)
              MOTA	- Multi-object tracking accuracy in [0,100]
@@ -90,14 +94,16 @@ class trackingEvaluation(object):
              missed         - number of missed targets (FN)
     """
 
-    def __init__(self, t_sha, gt_path="./tools/eval_kitti_track/data/tracking",\
-        split_version='', min_overlap=0.5, max_truncation = 0, min_height = 25, 
+    def __init__(self, t_sha,
+        # gt_path="./tools/eval_kitti_track/data/tracking",
+        gt_path=f"{CODE_DIR}/tools/eval_kitti_track/data/tracking",
+        split_version='', min_overlap=0.5, max_truncation = 0, min_height = 25,
         max_occlusion = 2, mail=None, cls="car"):
         # get number of sequences and
         # get number of frames per sequence from test mapping
         # (created while extracting the benchmark)
-        filename_test_mapping = "./tools/eval_kitti_track/data/tracking/" + \
-          "evaluate_tracking{}.seqmap".format(split_version)
+        # filename_test_mapping = f"./tools/eval_kitti_track/data/tracking/evaluate_tracking{split_version}.seqmap"
+        filename_test_mapping = f"{CODE_DIR}/tools/eval_kitti_track/data/tracking/evaluate_tracking{split_version}.seqmap"
         self.n_frames         = []
         self.sequence_name    = []
         with open(filename_test_mapping, "r") as fh:
@@ -197,6 +203,7 @@ class trackingEvaluation(object):
         """
         
         try:
+            print(f'Loading GT from {self.gt_path}')
             self._loadData(self.gt_path, cls=self.cls, loading_groundtruth=True)
         except IOError:
             return False
@@ -396,6 +403,7 @@ class trackingEvaluation(object):
         # go through all frames and associate ground truth and tracker results
         # groundtruth and tracker contain lists for every single frame containing lists of KITTI format detections
         fr, ids = 0,0
+        # for each video
         for seq_idx in range(len(self.groundtruth)):
             seq_gt                = self.groundtruth[seq_idx]
             seq_dc                = self.dcareas[seq_idx] # don't care areas
@@ -417,7 +425,8 @@ class trackingEvaluation(object):
             
             n_gts = 0
             n_trs = 0
-            
+
+            # for each timestep
             for f in range(len(seq_gt)):
                 g = seq_gt[f]
                 dc = seq_dc[f]
@@ -434,6 +443,7 @@ class trackingEvaluation(object):
                 # build cost matrix
                 cost_matrix = []
                 this_ids = [[],[]]
+                # for each gt object, predicted object
                 for gg in g:
                     # save current ids
                     this_ids[0].append(gg.track_id)
@@ -667,7 +677,7 @@ class trackingEvaluation(object):
             self.gt_trajectories[seq_idx]             = seq_trajectories
             self.ign_trajectories[seq_idx]            = seq_ignored
             
-            # gather statistics for "per sequence" statistics.
+            # gather statistics for "per sequence" statistics.  TODO these scores might be useful to report per track
             self.n_gts.append(n_gts)
             self.n_trs.append(n_trs)
             self.tps.append(seqtp)
@@ -680,6 +690,8 @@ class trackingEvaluation(object):
         
         # compute MT/PT/ML, fragments, idswitches for all groundtruth trajectories
         n_ignored_tr_total = 0
+        self.idsws = {i: 0 for i in range(len(self.gt_trajectories))}
+        self.frags = {i: 0 for i in range(len(self.gt_trajectories))}
         for seq_idx, (seq_trajectories,seq_ignored) in enumerate(zip(self.gt_trajectories, self.ign_trajectories)):
             if len(seq_trajectories)==0:
                 continue
@@ -709,9 +721,11 @@ class trackingEvaluation(object):
                     if last_id != g[f] and last_id != -1 and g[f] != -1 and g[f-1] != -1:
                         tmpId_switches   += 1
                         self.id_switches += 1
+                        self.idsws[seq_idx] += 1
                     if f < len(g)-1 and g[f-1] != g[f] and last_id != -1 and g[f] != -1 and g[f+1] != -1:
                         tmpFragments   += 1
                         self.fragments += 1
+                        self.frags[seq_idx] += 1
                     if g[f] != -1:
                         tracked += 1
                         last_id = g[f]
@@ -719,6 +733,7 @@ class trackingEvaluation(object):
                 if len(g)>1 and g[f-1] != g[f] and last_id != -1  and g[f] != -1 and not ign_g[f]:
                     tmpFragments   += 1
                     self.fragments += 1
+                    self.frags[seq_idx] += 1
 
                 # compute MT/PT/ML
                 tracking_ratio = tracked / float(len(g) - sum(ign_g))
@@ -732,6 +747,10 @@ class trackingEvaluation(object):
                     tmpPT   += 1
                     self.PT += 1
 
+        assert sum(self.frags.values()) == self.fragments, f'Fragments: {sum(self.frags.values())} != {self.fragments}'
+        assert sum(self.idsws.values()) == self.id_switches, f'IDSW: {sum(self.idsws.values())} != {self.id_switches}'
+
+        # MT, PT, ML
         if (self.n_gt_trajectories-n_ignored_tr_total)==0:
             self.MT = 0.
             self.PT = 0.
@@ -741,23 +760,32 @@ class trackingEvaluation(object):
             self.PT /= float(self.n_gt_trajectories-n_ignored_tr_total)
             self.ML /= float(self.n_gt_trajectories-n_ignored_tr_total)
 
-        # precision/recall etc.
+        # precision/recall
         if (self.fp+self.tp)==0 or (self.tp+self.fn)==0:
             self.recall = 0.
             self.precision = 0.
         else:
             self.recall = self.tp/float(self.tp+self.fn)
             self.precision = self.tp/float(self.fp+self.tp)
+
+        # F1
         if (self.recall+self.precision)==0:
             self.F1 = 0.
         else:
             self.F1 = 2.*(self.precision*self.recall)/(self.precision+self.recall)
+
+        # FAR
         if sum(self.n_frames)==0:
             self.FAR = "n/a"
         else:
             self.FAR = self.fp/float(sum(self.n_frames))
 
         # compute CLEARMOT
+        self.MOTAs = []
+        for t in range(len(self.n_gts)):
+            mota_seq = -float('inf') if self.n_gts[t] == 0 else 1 - (self.fns[t] + self.fps[t] + self.idsws[t])/float(self.n_gts[t])
+            self.MOTAs.append(mota_seq)
+
         if self.n_gt==0:
             self.MOTA = -float("inf")
             self.MODA = -float("inf")
@@ -917,8 +945,7 @@ def evaluate(result_sha,mail, split_version='', uuid=''):
     mail.msg("Processing Result for KITTI Tracking Benchmark")
     classes = []
     for c in ("car", "pedestrian"):
-        e = trackingEvaluation(
-            t_sha=result_sha, mail=mail,cls=c,split_version=split_version)
+        e = trackingEvaluation(t_sha=result_sha, mail=mail,cls=c,split_version=split_version)
         # load tracker data and check provided classes
         try:
             if not e.loadTracker():
@@ -932,7 +959,7 @@ def evaluate(result_sha,mail, split_version='', uuid=''):
             break
         # load groundtruth data for this class
         if not e.loadGroundtruth():
-            raise ValueError("Ground truth not found.")
+            raise ValueError(f"Ground truth not found for class {c}.")
         mail.msg("Loading Groundtruth - Success")
         # sanity checks
         if len(e.groundtruth) is not len(e.tracker):
@@ -951,6 +978,9 @@ def evaluate(result_sha,mail, split_version='', uuid=''):
             mets = ["MOTA", "MOTP", "MOTAL", "MODA", "MODP", "recall", "precision", "F1", "FAR", "MT", "PT", "ML", "tp",
                     "fp", "fn", "id_switches", "fragments", "n_gt", "n_gt_trajectories", "n_tr", "n_tr_trajectories"]
             to_log = {f'{c}/{m}': np.array(getattr(e, m)) for m in mets}
+            to_log.update({f'IDSW{t}': v for t, v in e.idsws.items()})
+            to_log.update({f'Frag{t}': v for t, v in e.frags.items()})
+            to_log.update({f'MOTA{t}': v for t, v in enumerate(e.MOTAs)})
             wandb.log(to_log)
             for k, v in to_log.items():
                 wandb.run.summary[k] = v
@@ -981,7 +1011,8 @@ if __name__ == "__main__":
     # get unique sha key of submitted results
     result_sha = sys.argv[1]
     split_version = sys.argv[2] if len(sys.argv) >= 3 else ''
-    uuid = sys.argv[3] if len(sys.argv) >= 4 else ''
+    import random
+    uuid = sys.argv[3] if len(sys.argv) >= 4 else str(random.randint(0, 1e63))
     mail = mailpy.Mail("")
     # create mail messenger and debug output object
     # if len(sys.argv)==4:
