@@ -74,6 +74,8 @@ class Detector(object):
     if self.negate_motion:
       logging.warning('Motion is being negated! Are you sure?')
 
+    self.all_pre_images = []
+
   def run(self, image_or_path_or_tensor, meta={}, tracks={}):
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
     merge_time, track_time, tot_time, display_time = 0, 0, 0, 0
@@ -121,8 +123,7 @@ class Detector(object):
         if self.pre_images is None:
           print('Initialize tracking!')
           self.pre_images = images
-          self.tracker.init_track(
-            meta['pre_dets'] if 'pre_dets' in meta else [])
+          self.tracker.init_track(meta['pre_dets'] if 'pre_dets' in meta else [])
         if self.opt.pre_hm:
           # render input heatmap from tracker status
           # pre_inds is not used in the current version.
@@ -137,8 +138,7 @@ class Detector(object):
       # run the network
       # output: the output feature maps, only used for visualizing
       # dets: output tensors after extracting peaks
-      output, dets, forward_time = self.process(
-        images, self.pre_images, pre_hms, pre_inds, return_time=True)
+      output, dets, forward_time = self.process(images, self.pre_images, pre_hms, pre_inds, return_time=True)
       net_time += forward_time - pre_process_time
       decode_time = time.time()
       dec_time += decode_time - forward_time
@@ -164,7 +164,7 @@ class Detector(object):
 
     # motion models
     if self.motion == 'transformer' and len(results) > 0:
-      offsets = self.transformer.evaluate(results, tracks, image.shape[:2]).detach().numpy()
+      offsets = self.transformer.evaluate(results, tracks, image.shape[:2], images, self.all_pre_images).detach().numpy()
       for i in range(len(results)):
         results[i]['tracking'] = offsets[i]
     elif self.motion == 'zero':
@@ -181,6 +181,7 @@ class Detector(object):
       # add tracking id to results
       results = self.tracker.step(results, public_det)
       self.pre_images = images
+      self.all_pre_images.append(images)
 
     tracking_time = time.time()
     track_time += tracking_time - end_time
@@ -491,4 +492,5 @@ class Detector(object):
   def reset_tracking(self):
     self.tracker.reset()
     self.pre_images = None
+    self.all_pre_images = []
     self.pre_image_ori = None

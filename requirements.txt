@@ -11,3 +11,6 @@ pyyaml
 motmetrics
 scikit-learn==0.22.2
 wandb==0.10.12
+ipdb
+einops
+kornia==0.2.2
