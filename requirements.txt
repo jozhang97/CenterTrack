@@ -14,3 +14,5 @@ wandb==0.10.12
 ipdb
 einops
 kornia==0.2.2
+moviepy
+imageio
