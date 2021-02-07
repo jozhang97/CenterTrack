@@ -115,16 +115,16 @@ def prefetch_test(opt):
         print('No pre_dets for', img_id_str, '. Use empty initialization.')
         pre_processed_images['meta']['pre_dets'] = []
       detector.reset_tracking()
+      vid_id = pre_processed_images["video_id"].item()
       if opt.save_video:
         if out is not None:
           out.release()
-        vid_id = pre_processed_images["video_id"].item()
         vid_path = os.path.join(vid_dir, f'track{vid_id}.mp4')
         out = cv2.VideoWriter(vid_path, fourcc, opt.save_framerate, pre_processed_images['image'].shape[1:3][::-1])
         if len(imgs) > 0:
           wandb.log({f'eval/video_{vid_id-1}': wandb.Video(torch.as_tensor(imgs).permute(0,3,1,2))})
         imgs = []
-      print('Start tracking video', int(pre_processed_images['video_id']))
+      print('Start tracking video', vid_id)
 
     # handle public det
     if opt.public_det:
@@ -135,7 +135,9 @@ def prefetch_test(opt):
         pre_processed_images['meta']['cur_dets'] = []
     
     # run tracker and store results
-    ret = detector.run(pre_processed_images, tracks=results)
+    img_ids_for_vid = [v['id'] for v in dataset.video_to_images[vid_id]]
+    results_for_vid = {k: v for k, v in results.items() if k in img_ids_for_vid}
+    ret = detector.run(pre_processed_images, tracks=results_for_vid)
     results[int(img_id_str)] = ret['results']
 
     if opt.save_video:

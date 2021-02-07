@@ -30,9 +30,7 @@ class KITTITracking(GenericDataset):
       data_dir, 'data_tracking_image_2', '{}ing'.format(split_), 'image_02')
     ann_file_ = split_ if opt.dataset_version == '' else opt.dataset_version
     print('Warning! opt.dataset_version is not set')
-    ann_path = os.path.join(
-      data_dir, 'annotations', 'tracking_{}.json'.format(
-        ann_file_))
+    ann_path = os.path.join(data_dir, 'annotations', f'tracking_{ann_file_}.json')
     self.images = None
     super(KITTITracking, self).__init__(opt, split, ann_path, img_dir)
     self.alpha_in_degree = False
