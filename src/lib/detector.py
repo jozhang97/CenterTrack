@@ -77,6 +77,7 @@ class Detector(object):
     self.all_pre_images = []
 
   def run(self, image_or_path_or_tensor, meta={}, tracks={}):
+    # tracks time start index is 0
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
     merge_time, track_time, tot_time, display_time = 0, 0, 0, 0
     self.debugger.clear()

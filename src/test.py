@@ -136,7 +136,7 @@ def prefetch_test(opt):
     
     # run tracker and store results
     img_ids_for_vid = [v['id'] for v in dataset.video_to_images[vid_id]]
-    results_for_vid = {k: v for k, v in results.items() if k in img_ids_for_vid}
+    results_for_vid = {k - min(img_ids_for_vid): v for k, v in results.items() if k in img_ids_for_vid}
     ret = detector.run(pre_processed_images, tracks=results_for_vid)
     results[int(img_id_str)] = ret['results']
 
