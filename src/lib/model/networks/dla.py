@@ -18,8 +18,10 @@ from .base_model import BaseModel
 try:
     from .DCNv2.dcn_v2 import DCN
 except:
-    print('import DCN failed')
+    print('import DCN failed, trying new import')
     DCN = None
+    import DCN
+    DCN = DCN.DCN
 
 
 BN_MOMENTUM = 0.1
