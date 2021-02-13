@@ -13,6 +13,8 @@ import pycocotools.coco as coco
 import torch
 import torch.utils.data as data
 
+import sys
+sys.path.append('/u/jozhang/code/motion3d/external/CenterTrack/src/lib/')
 from utils.image import flip, color_aug
 from utils.image import get_affine_transform, affine_transform
 from utils.image import gaussian_radius, draw_umich_gaussian
@@ -69,6 +71,8 @@ class GenericDataset(data.Dataset):
         print('Creating video index!')
         self.video_to_images = defaultdict(list)
         for image in self.coco.dataset['images']:
+          if 'frame_index' in image:
+            image['frame_id'] = image['frame_index']
           self.video_to_images[image['video_id']].append(image)
       
       self.img_dir = img_dir
@@ -273,8 +277,8 @@ class GenericDataset(data.Dataset):
       cf = self.opt.shift
       if type(s) == float:
         s = [s, s]
-      c[0] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
-      c[1] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
+      c[0] += s[0] * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
+      c[1] += s[0] * np.clip(np.random.randn()*cf, -2*cf, 2*cf)
       aug_s = np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)
     
     if np.random.random() < self.opt.aug_rot:
